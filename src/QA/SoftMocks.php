@@ -374,6 +374,33 @@ class SoftMocks
     private static $php_parser_path = "/php-parser/";
     private static $lock_file_path = '/tmp/mocks/soft_mocks_rewrite.lock';
 
+    // List of callable object that given a file path will return a ( possibly translated ) path.
+    private static $file_path_rewriters = array();
+
+    /**
+     * Rewrites a path by calling all configured rewriters
+     * in order.
+     * @param string $path Path to be rewritten
+     *
+     * @return string
+     */
+    public static function filePathRewriter($path){
+        foreach (self::$file_path_rewriters as $path_rewriter)  {
+            $path = $path_rewriter($path);
+        }
+        return $path;
+    }
+
+    /**
+     * Append a path rewriter to the list of rewriters, calling {@see SoftMocks::restoreAll} will
+     * remove all previously added path rewriters.
+     *
+     * @param callable $path_rewriter A callable of the form: function ($path) : string
+     */
+    public static function addPathRewriter($path_rewriter) {
+        self::$file_path_rewriters [] = $path_rewriter;
+    }
+
     public static function init()
     {
         if (!defined('SOFTMOCKS_ROOT_PATH')) {
@@ -1062,6 +1089,7 @@ class SoftMocks
         self::$generator_mocks = [];
         self::$func_mocks = self::$internal_func_mocks;
         self::$temp_disable = false;
+        self::$file_path_rewriters = array();
         self::restoreAllConstants();
         self::restoreAllNew();
     }
@@ -1655,7 +1683,7 @@ class SoftMocksTraverser extends \PhpParser\NodeVisitorAbstract
         $Node->expr = new \PhpParser\Node\Expr\StaticCall(
             new \PhpParser\Node\Name("\\" . SoftMocks::CLASS),
             "rewrite",
-            [new \PhpParser\Node\Arg($Node->expr)]
+            [new \PhpParser\Node\Arg($this->injectPathRewriterNode($Node->expr))]
         );
     }
 
@@ -1958,4 +1986,17 @@ class SoftMocksTraverser extends \PhpParser\NodeVisitorAbstract
         $NewNode->setLine($Node->getLine());
         return $NewNode;
     }
+
+    /**
+     * Inject a path rewriting function in the expression chain
+     *
+     * @param \PhpParser\Node\Expr $expr
+     *
+     * @return \PhpParser\Node\Expr
+     */
+    private function injectPathRewriterNode(\PhpParser\Node\Expr $expr)
+    {
+        return new \PhpParser\Node\Expr\StaticCall(new \PhpParser\Node\Name("\\" . SoftMocks::CLASS),
+            "filePathRewriter", [new \PhpParser\Node\Arg($expr)]);
+}
 }
