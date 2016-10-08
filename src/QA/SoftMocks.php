@@ -1521,15 +1521,16 @@ class SoftMocks
     }
 
     /**
-     * @todo Empty PHPDoc
+     * Attempt to retrieve an environment variable, first from $_ENV, and then through {@see getenv} if it
+     * was missing or empty in $_ENV
      *
-     * @param $env
+     * @param string $name Name of environment variable
      *
      * @return mixed
      */
-    private static function getEnvironment($env)
+    private static function getEnvironment($name)
     {
-        return isset($_ENV[$env]) ?  $_ENV[$env] : getenv($env);
+        return isset($_ENV[$name]) ?  $_ENV[$name] : getenv($name);
 }
 
     /**
