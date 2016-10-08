@@ -715,8 +715,8 @@ class SoftMocks
         try {
             return self::doRewrite($file);
         } catch (\Exception $e) {
-            echo "Could not rewrite file $file: " . $e->getMessage() . "\n";
-            return false;
+            self::log($e->getTraceAsString(),LOG_ERR);
+            die("Could not rewrite file $file: " . $e->getMessage() . "\n");
         }
     }
 
