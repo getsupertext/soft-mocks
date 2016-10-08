@@ -1099,7 +1099,8 @@ class SoftMocks
         if (SoftMocksTraverser::isFunctionIgnored($func)) {
             throw new \RuntimeException("Function $func cannot be mocked using Soft Mocks");
         }
-        self::$func_mocks[$func] = ['args' => $functionArgs, 'code' => $fakeCode];
+        $stripped_code = preg_replace('/^\s*<\?php\s*/', '', $fakeCode);
+        self::$func_mocks[$func] = ['args' => $functionArgs, 'code' => $stripped_code];
     }
 
     public static function restoreFunction($func)
@@ -1150,6 +1151,7 @@ class SoftMocks
      */
     public static function redefineMethod($class, $method, $functionArgs, $fakeCode, $strict = true)
     {
+        $fakeCode = preg_replace('/^\s*<\?php\s*/','',$fakeCode);
         if (self::$debug) self::debug("Asked to redefine $class::$method($functionArgs)");
         if (SoftMocksTraverser::isClassIgnored($class)) {
             throw new \RuntimeException("Class $class cannot be mocked using Soft Mocks");
