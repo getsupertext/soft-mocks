@@ -591,9 +591,7 @@ class SoftMocks
             self::$lock_file_path = $lock_file_path;
         }
 
-        if (!file_exists(self::$lock_file_path) && !touch(self::$lock_file_path)) {
-            throw new \RuntimeException("Can't create lock file at " . self::$lock_file_path);
-        }
+        self::ensureValidLockfilePath();
     }
 
     /**
@@ -805,6 +803,7 @@ class SoftMocks
 
         $target_dir = dirname($target_file);
 
+        self::ensureValidLockfilePath();
         if (!$fp = fopen(self::$lock_file_path, 'a')) {
             throw new \RuntimeException("Could not create lock file " . self::$lock_file_path);
         }
@@ -1523,6 +1522,25 @@ class SoftMocks
         return isset($_ENV[$env]) ?  $_ENV[$env] : getenv($env);
 }
 
+    /**
+     * Make sure that the lockfile path exists, or that we can create it when it is missing.
+     */
+    private static function ensureValidLockfilePath()
+    {
+        if (!file_exists(self::$lock_file_path)) {
+
+            $lockfileDir = dirname(self::$lock_file_path);
+            if (!is_dir($lockfileDir)) {
+                    if (!mkdir($lockfileDir, 0777, true)) {
+                        throw new \RuntimeException("Can't create either lock file, or it's parent directory at " . self::$lock_file_path);
+                    }
+                } else {
+                    if (!touch(self::$lock_file_path)) {
+                        throw new \RuntimeException("Can't create lock file " . self::$lock_file_path . " , although it's parent directory directory " . $lockfileDir . " exits.");
+                    }
+                }
+        }
+    }
 }
 
 class SoftMocksTraverser extends \PhpParser\NodeVisitorAbstract
