@@ -722,6 +722,9 @@ class SoftMocks
 
     private static function doRewrite($file)
     {
+        $original_file = $file;
+        $file = self::filePathRewriter($original_file);
+
         $real_file = $file;
         if ($file[0] != '/') {
             foreach (explode(':', get_include_path()) as $dir) {
@@ -740,7 +743,7 @@ class SoftMocks
         }
         if (!$real_file) {
             if($file) {
-                throw new \RuntimeException('File not found: '. $file);
+                throw new \RuntimeException('File not found: '. $file . ($original_file !== $file ? '. The file was know as '. $original_file . ' when rewrite was initiated.' : ''));
             } else {
                 throw new \RuntimeException('No file name given in require!');
             }
@@ -1746,7 +1749,7 @@ class SoftMocksTraverser extends \PhpParser\NodeVisitorAbstract
         $Node->expr = new \PhpParser\Node\Expr\StaticCall(
             new \PhpParser\Node\Name("\\" . SoftMocks::CLASS),
             "rewrite",
-            [new \PhpParser\Node\Arg($this->injectPathRewriterNode($Node->expr))]
+            [new \PhpParser\Node\Arg($Node->expr)]
         );
     }
 
@@ -2049,17 +2052,4 @@ class SoftMocksTraverser extends \PhpParser\NodeVisitorAbstract
         $NewNode->setLine($Node->getLine());
         return $NewNode;
     }
-
-    /**
-     * Inject a path rewriting function in the expression chain
-     *
-     * @param \PhpParser\Node\Expr $expr
-     *
-     * @return \PhpParser\Node\Expr
-     */
-    private function injectPathRewriterNode(\PhpParser\Node\Expr $expr)
-    {
-        return new \PhpParser\Node\Expr\StaticCall(new \PhpParser\Node\Name("\\" . SoftMocks::CLASS),
-            "filePathRewriter", [new \PhpParser\Node\Arg($expr)]);
-}
 }
