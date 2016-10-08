@@ -419,8 +419,13 @@ class SoftMocks
             define('SOFTMOCKS_ROOT_PATH', '/');
         }
 
-        if (!empty($_ENV['SOFT_MOCKS_DEBUG'])) {
+
+        if (!empty(self::getEnvironment('SOFT_MOCKS_DEBUG'))) {
             self::$debug = true;
+        }
+
+        if (!empty(self::getEnvironment('SOFT_MOCKS_LOG_REWRITES'))) {
+            self::$log_rewrites = true;
         }
 
         self::$func_mocks['call_user_func_array'] = [
@@ -785,8 +790,12 @@ class SoftMocks
 
     private static function createRewrittenFile($file, $target_file)
     {
-        if (self::$debug) {
+
+        if (self::$debug || self::$log_rewrites) {
             self::log("Rewriting $file => $target_file\n",LOG_NOTICE);
+        }
+
+        if (self::$debug) {
             self::log(new \Exception(),LOG_WARNING);
             ob_flush();
         }
@@ -1501,6 +1510,19 @@ class SoftMocks
             }
         );
     }
+
+    /**
+     * @todo Empty PHPDoc
+     *
+     * @param $env
+     *
+     * @return mixed
+     */
+    private static function getEnvironment($env)
+    {
+        return isset($_ENV[$env]) ?  $_ENV[$env] : getenv($env);
+}
+
 }
 
 class SoftMocksTraverser extends \PhpParser\NodeVisitorAbstract
