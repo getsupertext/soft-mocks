@@ -367,6 +367,8 @@ class SoftMocks
 
     private static $debug = false;
 
+    private static $log_rewrites = false;
+
     private static $temp_disable = false;
 
     private static $mocks_cache_path = "/tmp/mocks/";
@@ -377,6 +379,16 @@ class SoftMocks
     // List of callable object that given a file path will return a ( possibly translated ) path.
     private static $file_path_rewriters = array();
 
+
+    /**
+     * Send a message through current logger
+     *
+     * @param string $message
+     * @param int $level Urgency as PHP LOG_WARNING,LOG_NOTICE,... {@link http://php.net/manual/en/network.constants.php syslog level constant.}
+     */
+    private static function log($message, $level = LOG_WARNING) {
+        fwrite(STDERR,$message . PHP_EOL);
+    }
     /**
      * Rewrites a path by calling all configured rewriters
      * in order.
@@ -627,7 +639,7 @@ class SoftMocks
     {
         if (!(error_reporting() & $errno)) return;
         $descr = isset(self::$error_descriptions[$errno]) ? self::$error_descriptions[$errno] : "Unknown error ($errno)";
-        echo "\n$descr: $errstr in " . self::replaceFilename($errfile) . " on line $errline\n";
+        self::log("\n$descr: $errstr in " . self::replaceFilename($errfile) . " on line $errline\n",LOG_ERR);
     }
 
     public static function printBackTrace(\Exception $e = null)
@@ -635,7 +647,7 @@ class SoftMocks
         $str = $e ?: new \Exception();
 
         if (!empty($_ENV['REAL_BACKTRACE'])) {
-            echo $str->getTraceAsString();
+            self::log($str->getTraceAsString());
             return;
         }
 
@@ -654,7 +666,7 @@ class SoftMocks
             $ln = preg_replace('/^\\#\\d+\\s*\\:?\\s*/s', '', $ln);
         }
 
-        echo "(use REAL_BACKTRACE=1 to get real trace) " . implode(
+        self::log( "(use REAL_BACKTRACE=1 to get real trace) " . implode(
             "\n ",
             array_filter(
                 $trace_lines,
@@ -672,7 +684,7 @@ class SoftMocks
                         && strpos($str, basename(__FILE__)) === false;
                 }
             )
-        ) . "\n";
+        ) . "\n", LOG_ERR);
     }
 
     public static function replaceFilename($file, $raw = false)
@@ -774,8 +786,8 @@ class SoftMocks
     private static function createRewrittenFile($file, $target_file)
     {
         if (self::$debug) {
-            echo "Rewriting $file => $target_file\n";
-            echo new \Exception();
+            self::log("Rewriting $file => $target_file\n",LOG_NOTICE);
+            self::log(new \Exception(),LOG_WARNING);
             ob_flush();
         }
 
@@ -1448,9 +1460,9 @@ class SoftMocks
         }
 
         if (self::$debug) {
-            echo "Compiled code for " . $Rm->getDeclaringClass()->getName() . "::" . $Rm->getName() . " ($args)\n===========\n";
-            echo $codeArgs;
-            echo "===========\n";
+            log("Compiled code for " . $Rm->getDeclaringClass()->getName() . "::" . $Rm->getName() . " ($args)\n===========\n",E_WARNING);
+            log($codeArgs,E_WARNING);
+            log("===========\n",E_WARNING);
             ob_flush();
         }
 
@@ -1459,7 +1471,7 @@ class SoftMocks
 
     protected static function debug($message)
     {
-        echo $message . "\n";
+        self::log($message . "\n",LOG_WARNING);
     }
 
     private static function injectIntoPhpunit()
