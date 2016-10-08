@@ -722,6 +722,7 @@ class SoftMocks
 
     private static function doRewrite($file)
     {
+        $real_file = $file;
         if ($file[0] != '/') {
             foreach (explode(':', get_include_path()) as $dir) {
                 if ($dir == '.') {
@@ -730,14 +731,21 @@ class SoftMocks
                 }
 
                 if (file_exists($dir . '/' . $file)) {
-                    $file = "$dir/$file";
+                    $real_file = realpath("$dir/$file");
                     break;
                 }
             }
         } else {
-            $file = realpath($file);
+            $real_file = realpath($file);
         }
-        if (!$file) return $file;
+        if (!$real_file) {
+            if($file) {
+                throw new \RuntimeException('File not found: '. $file);
+            } else {
+                throw new \RuntimeException('No file name given in require!');
+            }
+        }
+        $file = $real_file;
 
         if (!isset(self::$rewrite_cache[$file])) {
             if (strpos($file, self::$mocks_cache_path) === 0
